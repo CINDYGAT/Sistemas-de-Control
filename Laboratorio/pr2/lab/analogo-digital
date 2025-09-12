@@ -1,0 +1,95 @@
+#include <LiquidCrystal.h>
+
+// Configuración de pines LCD
+const int rs = 12;
+const int en = 11;
+const int d4 = 5;
+const int d5 = 4;
+const int d6 = 3;
+const int d7 = 2;
+
+const int fanPin = 9;       // Salida PWM al ventilador
+const int buttonUpPin = 6;  // Botón para aumentar el duty cycle
+const int buttonDownPin = 7; // Botón para disminuir el duty cycle
+
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+// Variables de control
+int dutySteps[] = {0, 25, 50, 75, 100};  // Pasos de duty cycle
+int currentStep = 0;
+int lastButtonUpState = HIGH;
+int lastButtonDownState = HIGH;
+unsigned long lastDebounceTimeUp = 0;
+unsigned long lastDebounceTimeDown = 0;
+const unsigned long debounceDelay = 50;  // Tiempo anti-rebote
+
+void setup() {
+  pinMode(fanPin, OUTPUT);
+  pinMode(buttonUpPin, INPUT_PULLUP);    // Botón con resistencia pull-up interna
+  pinMode(buttonDownPin, INPUT_PULLUP);  // Botón con resistencia pull-up interna
+  analogWrite(fanPin, 0);                // Inicializar ventilador apagado
+
+  lcd.begin(16, 2);
+  lcd.print("Ventilador OFF");
+  lcd.setCursor(0, 1);
+  lcd.print("Duty: 0%");
+}
+
+void loop() {
+  int buttonUpState = digitalRead(buttonUpPin);
+  int buttonDownState = digitalRead(buttonDownPin);
+  
+  // Detección de flanco descendente (presión del botón de subir)
+  if (buttonUpState == LOW && lastButtonUpState == HIGH) {
+    if ((millis() - lastDebounceTimeUp) > debounceDelay) {
+      aumentarDutyCycle();
+      lastDebounceTimeUp = millis();
+    }
+  }
+  
+  // Detección de flanco descendente (presión del botón de bajar)
+  if (buttonDownState == LOW && lastButtonDownState == HIGH) {
+    if ((millis() - lastDebounceTimeDown) > debounceDelay) {
+      disminuirDutyCycle();
+      lastDebounceTimeDown = millis();
+    }
+  }
+  
+  lastButtonUpState = buttonUpState;
+  lastButtonDownState = buttonDownState;
+}
+
+void aumentarDutyCycle() {
+  if (currentStep < 4) {   // límite superior (5 pasos → 100%)
+    currentStep++;
+  }
+  actualizarVentilador();
+}
+
+void disminuirDutyCycle() {
+  if (currentStep > 0) {   // límite inferior (0 → 0%)
+    currentStep--;
+  }
+  actualizarVentilador();
+}
+
+void actualizarVentilador() {
+  int porcentaje = dutySteps[currentStep];
+  int pwmValue = map(porcentaje, 0, 100, 0, 255);
+  
+  analogWrite(fanPin, pwmValue);
+  
+  // Actualizar LCD
+  lcd.clear();
+  lcd.print("Duty: ");
+  lcd.print(porcentaje);
+  lcd.print("%");
+  
+  lcd.setCursor(0, 1);
+  if (porcentaje == 0) {
+    lcd.print("Ventilador OFF");
+  } else {
+    lcd.print("PWM: ");
+    lcd.print(pwmValue);
+  }
+}
