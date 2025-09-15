@@ -66,6 +66,42 @@ Botones pulsadores.
 
 Resistencias y fuente de alimentación de 12V.
 
+🔹 Procedimiento de uso
+
+Conexión del hardware
+
+Conecta el motor DC a la salida del puente H.
+
+Alimenta el puente H con 12V (o el voltaje nominal del motor).
+
+Conecta los pines de control del puente H a los pines D6 y D10 del Arduino.
+
+Conecta los botones a los pines digitales definidos en el código (uno para aumentar, otro para disminuir el duty cycle).
+
+Conecta la pantalla LCD 16x2 con I2C a los pines A4 (SDA) y A5 (SCL) del Arduino.
+
+Asegúrate de compartir la tierra (GND) entre la fuente del motor, el puente H y el Arduino.
+
+Carga del programa
+
+Abre el código en el Arduino IDE.
+
+Selecciona la placa correcta (Arduino UNO/Nano) y el puerto COM.
+
+Carga el programa en el Arduino.
+
+Uso del sistema
+
+Al encender el sistema, la LCD mostrará el modo de operación y el ciclo de trabajo inicial (0%).
+
+Presiona el botón de incremento para subir el duty cycle en pasos definidos (0%, 25%, 50%, 75%, 100%).
+
+Presiona el botón de decremento para reducir el duty cycle en los mismos pasos.
+
+El motor responderá en tiempo real a los cambios, aumentando o disminuyendo la velocidad según el ciclo de trabajo aplicado.
+
+La LCD actualizará la información mostrando el modo actual y el duty cycle aplicado.
+
 🔹 Notas importantes
 
 El motor debe coincidir con el voltaje de alimentación del puente H para evitar saturación o comportamientos erráticos (ejemplo: no usar motor de 5V con 12V).
