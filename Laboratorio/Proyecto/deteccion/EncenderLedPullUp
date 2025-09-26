@@ -1,0 +1,21 @@
+// Pines
+const int botonPin = 2;     // Pin del botón
+const int ledPin = 13;      // Pin del LED
+int estadoBoton = 0;        // Variable para guardar el estado del botón
+
+void setup() {
+  pinMode(ledPin, OUTPUT);        // LED como salida
+  pinMode(botonPin, INPUT_PULLUP); // Botón como entrada con resistencia interna
+}
+
+void loop() {
+  // Leer el estado del botón
+  estadoBoton = digitalRead(botonPin);
+
+  // Como usamos INPUT_PULLUP: LOW = presionado, HIGH = no presionado
+  if (estadoBoton == LOW) {
+    digitalWrite(ledPin, HIGH);   // Encender LED
+  } else {
+    digitalWrite(ledPin, LOW);    // Apagar LED
+  }
+}
