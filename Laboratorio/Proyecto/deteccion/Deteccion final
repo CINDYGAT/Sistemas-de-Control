@@ -1,0 +1,136 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// Configuración de la LCD
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// ===== PINES PARA BOTONES FÍSICOS =====
+const int botonPequeno = 2;
+const int botonMediano = 3;
+const int botonGrande = 4;
+
+// ====== Pines para los 3 sensores IR =====
+const int sensorAlto = A0;
+const int sensorMedio = A1;  
+const int sensorBajo = A2;
+
+// === Umbral para detección IR ====
+const int UMBRAL_DETECCION = 500;
+
+
+void setup() {
+  Serial.begin(9600);
+  lcd.init();
+  lcd.backlight();
+
+  // Configurar pines de botones
+  pinMode(botonPequeno, INPUT_PULLUP);
+  pinMode(botonMediano, INPUT_PULLUP);
+  pinMode(botonGrande, INPUT_PULLUP);
+
+  lcd.setCursor(0,0);
+  lcd.print("Sistema Listo   ");
+  lcd.setCursor(0,1);
+  lcd.print("Calibrando...   ");
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+  //Leer botones fisicos
+  leerBotones();
+}
+
+void leerBotones() {
+  int lastBotonPequeno = HIGH;
+  int lastBotonMediano = HIGH;
+  int lastBotonGrande = HIGH;
+  
+  int lecturaPequeno = digitalRead(botonPequeno);
+  int lecturaMediano = digitalRead(botonMediano);
+  int lecturaGrande = digitalRead(botonGrande);
+  
+  // Detectar flancos de bajada (botón presionado)
+  if (lecturaPequeno == LOW && lastBotonPequeno == HIGH) {
+    delay(50);
+    deteccionIR(lecturaPequeno, lecturaMediano, lecturaGrande);
+  }
+  
+  if (lecturaMediano == LOW && lastBotonMediano == HIGH) {
+    delay(50);
+    deteccionIR(lecturaPequeno, lecturaMediano, lecturaGrande);
+  }
+  
+  if (lecturaGrande == LOW && lastBotonGrande == HIGH) {
+    delay(50);
+    deteccionIR(lecturaPequeno, lecturaMediano, lecturaGrande);
+  }
+  
+  // Actualizar estados anteriores
+  lastBotonPequeno = lecturaPequeno;
+  lastBotonMediano = lecturaMediano;
+  lastBotonGrande = lecturaGrande;
+}
+
+void deteccionIR(int lecturaPequeno, int lecturaMediano, int lecturaGrande) {
+  // Leer los tres sensores
+  int valorAlto = analogRead(sensorAlto);
+  int valorMedio = analogRead(sensorMedio);
+  int valorBajo = analogRead(sensorBajo);
+
+  // Convertir a detección binaria
+  bool detectaAlto = (valorAlto < UMBRAL_DETECCION);
+  bool detectaMedio = (valorMedio < UMBRAL_DETECCION);
+  bool detectaBajo = (valorBajo < UMBRAL_DETECCION);
+
+  // Convertir lecturas de botones a booleanos (LOW = presionado por PULLUP)
+  bool btnPequenoPresionado = (lecturaPequeno == LOW);
+  bool btnMedianoPresionado = (lecturaMediano == LOW);
+  bool btnGrandePresionado = (lecturaGrande == LOW);
+  
+  // Determinar el tipo de recipiente
+  String tipoRecipiente = "No detectado";
+  int volumen = 0;
+  
+  // Lógica de detección
+  if (detectaBajo && !detectaMedio && !detectaAlto && lecturaPequeno == LOW) {
+    tipoRecipiente = "Recipiente pequeno";
+    volumen = 250;
+  } 
+  else if (detectaBajo && detectaMedio && !detectaAlto && lecturaMediano == LOW) {
+    tipoRecipiente = "Recipiente medio";
+    volumen = 500;
+  } 
+  else if (detectaBajo && detectaMedio && detectaAlto && lecturaGrande == LOW) {
+    tipoRecipiente = "Recipiente grande";
+    volumen = 1000;
+  }
+  else if (detectaBajo || detectaMedio || detectaAlto) {
+    tipoRecipiente = "Presione boton";
+    volumen = 0;
+  }
+  
+  // Mostrar en LCD
+  lcd.setCursor(0,0);
+  lcd.print("IR:" + String(valorBajo) + "," + String(valorMedio) + "," + String(valorAlto));
+  lcd.setCursor(0,1);
+  lcd.print(tipoRecipiente + "   ");
+  
+  // Debug en Serial
+  Serial.print("IR: ");
+  Serial.print(valorBajo);
+  Serial.print(",");
+  Serial.print(valorMedio);
+  Serial.print(",");
+  Serial.print(valorAlto);
+  Serial.print(" | Botones: ");
+  Serial.print(lecturaPequeno);
+  Serial.print(",");
+  Serial.print(lecturaMediano);
+  Serial.print(",");
+  Serial.print(lecturaGrande);
+  Serial.print(" | Resultado: ");
+  Serial.println(tipoRecipiente);
+  
+  delay(300);
+}
