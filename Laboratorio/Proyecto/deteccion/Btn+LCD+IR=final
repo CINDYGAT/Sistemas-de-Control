@@ -1,0 +1,135 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// Configuración de la LCD
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// ===== PINES PARA BOTONES FÍSICOS =====
+const int botonPequeno = 2;
+const int botonMediano = 3;
+const int botonGrande = 4;
+
+// ====== Pines para los 3 sensores IR =====
+const int sensorAlto = A0;
+const int sensorMedio = A1;
+const int sensorBajo = A2;
+
+// === Umbral para detección IR ====
+const int UMBRAL_DETECCION = 500;
+
+// Estado de selección del recipiente
+String tipoRecipienteSeleccionado = "";
+
+void setup() {
+  Serial.begin(9600);
+  lcd.init();
+  lcd.backlight();
+
+  // Configurar pines de botones
+  pinMode(botonPequeno, INPUT_PULLUP);
+  pinMode(botonMediano, INPUT_PULLUP);
+  pinMode(botonGrande, INPUT_PULLUP);
+
+  lcd.setCursor(0, 0);
+  lcd.print("Sistema Listo");
+  lcd.setCursor(0, 1);
+  lcd.print("Calibrando...");
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+  // Leer los botones físicos
+  leerBotones();
+}
+
+void leerBotones() {
+  int lecturaPequeno = digitalRead(botonPequeno);
+  int lecturaMediano = digitalRead(botonMediano);
+  int lecturaGrande = digitalRead(botonGrande);
+
+  // Detectar flancos de bajada (botón presionado)
+  if (lecturaPequeno == LOW) {
+    delay(50);
+    tipoRecipienteSeleccionado = "Pequeño";
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Seleccionaste:");
+    lcd.setCursor(0, 1);
+    lcd.print("Recipiente Pequeño");
+    delay(1000); // Mostrar selección por un segundo
+    lcd.clear();
+    delay(1500);
+    comprobarRecipiente(tipoRecipienteSeleccionado);
+  }
+
+  if (lecturaMediano == LOW) {
+    delay(50);
+    tipoRecipienteSeleccionado = "Mediano";
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Seleccionaste:");
+    lcd.setCursor(0, 1);
+    lcd.print("Recipiente Mediano");
+    delay(1000); // Mostrar selección por un segundo
+    lcd.clear();
+    delay(1500);
+    comprobarRecipiente(tipoRecipienteSeleccionado);
+  }
+
+  if (lecturaGrande == LOW) {
+    delay(50);
+    tipoRecipienteSeleccionado = "Grande";
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Seleccionaste:");
+    lcd.setCursor(0, 1);
+    lcd.print("Recipiente Grande");
+    delay(1000); // Mostrar selección por un segundo
+    lcd.clear();
+    delay(1500);
+    comprobarRecipiente(tipoRecipienteSeleccionado);
+  }
+}
+
+void comprobarRecipiente(String tipoRecipiente) {
+  // Leer los tres sensores
+  int valorAlto = analogRead(sensorAlto);
+  int valorMedio = analogRead(sensorMedio);
+  int valorBajo = analogRead(sensorBajo);
+
+  // Convertir a detección binaria
+  bool detectaAlto = (valorAlto < UMBRAL_DETECCION);
+  bool detectaMedio = (valorMedio < UMBRAL_DETECCION);
+  bool detectaBajo = (valorBajo < UMBRAL_DETECCION);
+
+  String resultado = "No cumple";  // Suponemos que no cumple por defecto
+
+  // Verificar si los valores del sensor coinciden con el recipiente seleccionado
+  if (tipoRecipiente == "Pequeño" && detectaBajo && !detectaMedio && !detectaAlto) {
+    resultado = "Pequeno";
+  } else if (tipoRecipiente == "Mediano" && detectaBajo && detectaMedio && !detectaAlto) {
+    resultado = "Mediano";
+  } else if (tipoRecipiente == "Grande" && detectaBajo && detectaMedio && detectaAlto) {
+    resultado = "Grande";
+  }
+
+  // Mostrar el resultado en LCD
+  lcd.setCursor(0, 0);
+  lcd.print("Recipiente: ");
+  lcd.setCursor(0, 1);
+  lcd.print(resultado);
+
+  // Debug en el monitor serial
+  Serial.print("IR: ");
+  Serial.print(valorBajo);
+  Serial.print(",");
+  Serial.print(valorMedio);
+  Serial.print(",");
+  Serial.print(valorAlto);
+  Serial.print(" | Resultado: ");
+  Serial.println(resultado);
+
+  delay(3000);  // Mostrar el resultado por un tiempo antes de limpiar
+  lcd.clear();
+}
