@@ -48,6 +48,13 @@ void leerBotones() {
   int lecturaMediano = digitalRead(botonMediano);
   int lecturaGrande = digitalRead(botonGrande);
 
+    // Mostrar instrucciones en LCD
+  lcd.setCursor(0,0);
+  lcd.print("Seleccione opcion:");
+  lcd.setCursor(0,1);
+  lcd.print("P, M o G        ");
+  delay(1000);
+
   // Detectar flancos de bajada (botón presionado)
   if (lecturaPequeno == LOW) {
     delay(50);
@@ -57,7 +64,7 @@ void leerBotones() {
     lcd.print("Seleccionaste:");
     lcd.setCursor(0, 1);
     lcd.print("Recipiente Pequeño");
-    delay(1000); // Mostrar selección por un segundo
+    delay(2000); // Mostrar selección por un segundo
     lcd.clear();
     delay(1500);
     comprobarRecipiente(tipoRecipienteSeleccionado);
@@ -71,7 +78,7 @@ void leerBotones() {
     lcd.print("Seleccionaste:");
     lcd.setCursor(0, 1);
     lcd.print("Recipiente Mediano");
-    delay(1000); // Mostrar selección por un segundo
+    delay(2000); // Mostrar selección por un segundo
     lcd.clear();
     delay(1500);
     comprobarRecipiente(tipoRecipienteSeleccionado);
@@ -85,7 +92,7 @@ void leerBotones() {
     lcd.print("Seleccionaste:");
     lcd.setCursor(0, 1);
     lcd.print("Recipiente Grande");
-    delay(1000); // Mostrar selección por un segundo
+    delay(2000); // Mostrar selección por un segundo
     lcd.clear();
     delay(1500);
     comprobarRecipiente(tipoRecipienteSeleccionado);
