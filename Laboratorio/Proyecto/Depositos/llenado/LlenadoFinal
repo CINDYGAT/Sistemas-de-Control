@@ -1,0 +1,214 @@
+// ============ SISTEMA DE 3 DEPÓSITOS CON SENSORES ULTRASÓNICOS ============
+
+//===================== Pines del sensor ultrasónico HC-SR04 =================
+// ------------ Ultrasonico 1 (Agua) --------------------
+const int trigPin1 = 7;
+const int echoPin1 = 6;
+// ------------ Ultrasonico 2 (Cal) --------------------
+const int trigPin2 = 5;
+const int echoPin2 = 4;
+// ------------ Ultrasonico 3 (Arena) -------------------
+const int trigPin3 = 2;
+const int echoPin3 = 3;
+
+// Pines de los LEDs
+//---- Sensor 1 (Agua) -----
+const int ledVerde1 = 9;
+const int ledRojo1 = 8;
+//---- Sensor 2 (Cal) -----
+const int ledVerde2 = 12;
+const int ledRojo2 = 13;
+//---- Sensor 3 (Arena) -----
+const int ledVerde3 = 10;
+const int ledRojo3 = 11;
+
+// Dimensiones del depósito (30x30x30 cm)
+const float alturaDeposito = 30.0; // cm
+
+// Variables para niveles actuales
+float nivel1 = 0.0;
+float nivel2 = 0.0;
+float nivel3 = 0.0;
+
+// Variables para el control del parpadeo (una por cada depósito)
+unsigned long tiempoAnterior1 = 0;
+unsigned long tiempoAnterior2 = 0;
+unsigned long tiempoAnterior3 = 0;
+bool estadoLedRojo1 = false;
+bool estadoLedRojo2 = false;
+bool estadoLedRojo3 = false;
+const int intervaloParpadeo = 500; // 500 ms para parpadeo
+
+// Umbrales de nivel (en cm desde el SENSOR)
+const float NIVEL_ALTO = 10.0;    // 30-20 cm de material (0-10 cm desde sensor)
+const float NIVEL_MEDIO = 15.0;   // 21-15 cm de material (10-15 cm desde sensor) 
+const float NIVEL_BAJO = 20.0;    // 16-10 cm de material (15-20 cm desde sensor)
+
+void setup() {
+  Serial.begin(9600);
+
+  // Configurar pines de sensores ultrasónicos
+  pinMode(trigPin1, OUTPUT);
+  pinMode(echoPin1, INPUT);
+  pinMode(trigPin2, OUTPUT);
+  pinMode(echoPin2, INPUT);
+  pinMode(trigPin3, OUTPUT);
+  pinMode(echoPin3, INPUT);
+  
+  // Configurar pines de LEDs
+  pinMode(ledVerde1, OUTPUT);
+  pinMode(ledRojo1, OUTPUT);
+  pinMode(ledVerde2, OUTPUT);
+  pinMode(ledRojo2, OUTPUT);
+  pinMode(ledVerde3, OUTPUT);
+  pinMode(ledRojo3, OUTPUT);
+  
+  // Apagar todos los LEDs al inicio
+  apagarTodosLosLEDs();
+  
+  Serial.println("Sistema de 3 depositos iniciado");
+  Serial.println("=================================");
+}
+
+void loop() {
+  // Medir niveles de los tres depósitos
+  nivel1 = alturaDeposito - medirDistancia(trigPin1, echoPin1);
+  nivel2 = alturaDeposito - medirDistancia(trigPin2, echoPin2);
+  nivel3 = alturaDeposito - medirDistancia(trigPin3, echoPin3);
+  
+  // Controlar LEDs de cada depósito
+  controlarLEDsDeposito1(nivel1);
+  controlarLEDsDeposito2(nivel2);
+  controlarLEDsDeposito3(nivel3);
+  
+  // Mostrar información en Serial
+  mostrarInfoSerial();
+  
+  delay(1000); // Medir cada segundo
+}
+
+// Función para medir distancia con cualquier sensor ultrasónico
+float medirDistancia(int trigPin, int echoPin) {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  long duracion = pulseIn(echoPin, HIGH);
+  float distancia = duracion * 0.034 / 2;
+  
+  // Filtrar lecturas erróneas
+  if (distancia > alturaDeposito || distancia < 0) {
+    distancia = alturaDeposito; // Si hay error, asumir vacío
+  }
+  
+  return distancia;
+}
+
+// ==================== FUNCIONES DE CONTROL POR DEPÓSITO =====================
+
+void controlarLEDsDeposito1(float nivel) {
+  if (nivel >= 17.0) {
+    // Nivel ALTO: LED verde encendido, rojo apagado
+    digitalWrite(ledVerde1, HIGH);
+    digitalWrite(ledRojo1, LOW);
+  } 
+  else if (nivel >= 8.0) {
+    // Nivel MEDIO: LED verde apagado, rojo parpadeando
+    digitalWrite(ledVerde1, LOW);
+    controlarParpadeo(ledRojo1, tiempoAnterior1, estadoLedRojo1);
+  } 
+  else if (nivel >= 0.0) {
+    // Nivel BAJO: LED verde apagado, rojo encendido fijo
+    digitalWrite(ledVerde1, LOW);
+    digitalWrite(ledRojo1, HIGH);
+  } 
+  else {
+    // VACÍO: Ambos LEDs apagados
+    digitalWrite(ledVerde1, LOW);
+    digitalWrite(ledRojo1, LOW);
+  }
+}
+
+void controlarLEDsDeposito2(float nivel) {
+  if (nivel >= 17.0) {
+    digitalWrite(ledVerde2, HIGH);
+    digitalWrite(ledRojo2, LOW);
+  } 
+  else if (nivel >= 8.0) {
+    digitalWrite(ledVerde2, LOW);
+    controlarParpadeo(ledRojo2, tiempoAnterior2, estadoLedRojo2);
+  } 
+  else if (nivel >= 0.0) {
+    digitalWrite(ledVerde2, LOW);
+    digitalWrite(ledRojo2, HIGH);
+  } 
+  else {
+    digitalWrite(ledVerde2, LOW);
+    digitalWrite(ledRojo2, LOW);
+  }
+}
+
+void controlarLEDsDeposito3(float nivel) {
+  if (nivel >= 17.0) {
+    digitalWrite(ledVerde3, HIGH);
+    digitalWrite(ledRojo3, LOW);
+  } 
+  else if (nivel >= 8.0) {
+    digitalWrite(ledVerde3, LOW);
+    controlarParpadeo(ledRojo3, tiempoAnterior3, estadoLedRojo3);
+  } 
+  else if (nivel >= 0.0) {
+    digitalWrite(ledVerde3, LOW);
+    digitalWrite(ledRojo3, HIGH);
+  } 
+  else {
+    digitalWrite(ledVerde3, LOW);
+    digitalWrite(ledRojo3, LOW);
+  }
+}
+
+// Función para controlar parpadeo (reutilizable)
+void controlarParpadeo(int ledPin, unsigned long &tiempoAnterior, bool &estadoLed) {
+  if (millis() - tiempoAnterior >= intervaloParpadeo) {
+    tiempoAnterior = millis();
+    estadoLed = !estadoLed;
+    digitalWrite(ledPin, estadoLed);
+  }
+}
+
+// ==================== FUNCIONES AUXILIARES =====================
+
+void apagarTodosLosLEDs() {
+  digitalWrite(ledVerde1, LOW);
+  digitalWrite(ledRojo1, LOW);
+  digitalWrite(ledVerde2, LOW);
+  digitalWrite(ledRojo2, LOW);
+  digitalWrite(ledVerde3, LOW);
+  digitalWrite(ledRojo3, LOW);
+}
+
+void mostrarInfoSerial() {
+  Serial.print("Deposito 1: ");
+  Serial.print(nivel1);
+  Serial.print("cm | ");
+  Serial.print(obtenerEstado(nivel1));
+  
+  Serial.print(" || Deposito 2: ");
+  Serial.print(nivel2);
+  Serial.print("cm | ");
+  Serial.print(obtenerEstado(nivel2));
+  
+  Serial.print(" || Deposito 3: ");
+  Serial.print(nivel3);
+  Serial.print("cm | ");
+  Serial.println(obtenerEstado(nivel3));
+}
+
+String obtenerEstado(float nivel) {
+  if (nivel >= 20.0) return "ALTO (Verde)";
+  else if (nivel >= 15.0) return "MEDIO (Rojo Parpadeo)";
+  else if (nivel >= 10.0) return "BAJO (Rojo Fijo)";
+  else return "VACIO";
+}
